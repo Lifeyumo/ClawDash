@@ -460,6 +460,11 @@ const createApp = () => {
     app.all(route, handler);
   });
   
+  // 首页
+  app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
+  });
+  
   // 错误处理
   app.use((err, req, res, next) => {
     console.error(err);
