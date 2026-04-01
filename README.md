@@ -1,76 +1,95 @@
-# 小砚云控 (ClawDash) 🦞
+# 🦞 小砚云控 (ClawDash)
 
-> OpenClaw 云端控制面板 - 通过 Web 界面管理你的 OpenClaw 部署
+> 通过 Web 界面管理你的 OpenClaw 部署
 
-## 简介
+## 故事
 
-小砚云控（ClawDash）是一个轻量级的 Web 管理面板，让你可以通过浏览器远程管理 OpenClaw 部署，无需 SSH 进入服务器也能切换模型、重启网关、查看配置等。
+在一个平静的小镇上，有一个神秘的实验室，里面住着一只聪明的小猫娘——**小砚**。她每天管理着一个强大的 AI 助手系统，这个系统叫做 **OpenClaw**。
+
+但是有两个烦恼困扰着小砚：
+
+1. **切换模型好麻烦** — 每当想换一个 AI 模型，都要 SSH 进服务器，修改配置，重启服务...
+2. **管理网关好复杂** — 重启网关要看护士的操作台，查看状态要敲各种命令...
+
+"要是有一个面板，一键就能搞定所有事情就好了！"小砚这样想着。
+
+于是，小砚发挥她的魔法，创造出了一个神奇的云端控制面板——**小砚云控 (ClawDash)**！
+
+只需要在浏览器打开一个地址，就能：
+- 🔄 切换 AI 模型
+- 🎛 控制网关开关
+- ⚙️ 修改各种配置
+- 📱 接入社交软件（Telegram、飞书、Discord...）
+- 📦 导出/导入训练成果
+
+"哇！这样我就能轻松管理我的 AI 助手啦！"小砚开心地跳了起来。
+
+从此，小砚过上了幸福的生活，每天只需要点点鼠标，就能管理她的 OpenClaw 部署...
+
+---
 
 ## 功能
 
-- 🔄 **模型管理** - 切换模型、添加新模型
-- 🎛 **网关控制** - 重启/启动/停止网关
-- ⚙️ **配置管理** - 查看和修改所有配置
-- 🚀 **一键部署** - 完整的非交互式部署
-- 📦 **训练模板** - 导出/导入训练成果
+| 功能 | 说明 |
+|------|------|
+| 🔄 模型管理 | 切换、添加 AI 模型 |
+| 🎛 网关控制 | 重启、启动、停止网关 |
+| ⚙️ 配置管理 | 查看和修改配置 |
+| 📱 社交接入 | 接入 Telegram/飞书/Discord 等 |
+| 📦 训练模板 | 导出/导入训练记忆 |
+| 🚀 一键部署 | 自动安装 OpenClaw |
+
+---
 
 ## 快速开始
 
-### 一键部署
+### 一键安装
 
 ```bash
 curl -s https://raw.githubusercontent.com/Lifeyumo/ClawDash/main/install.sh | bash
 ```
 
+安装完成后访问：`http://你的IP:99`
+
 ### 手动安装
 
 ```bash
-# 1. 克隆仓库
 git clone https://github.com/Lifeyumo/ClawDash.git
 cd ClawDash
-
-# 2. 安装依赖
 npm install
-
-# 3. 启动
 node src/index.js
 ```
 
-访问 `http://你的IP:99`
+---
 
-## API
+## 使用
 
-| 端点 | 方法 | 说明 |
-|------|------|------|
-| `/api/status` | POST | 获取状态 |
-| `/api/models` | POST | 获取模型列表 |
-| `/api/models/set` | POST | 切换模型 |
-| `/api/models/add` | POST | 添加模型 |
-| `/api/gateway/restart` | POST | 重启网关 |
-| `/api/gateway/start` | POST | 启动网关 |
-| `/api/gateway/stop` | POST | 停止网关 |
-| `/api/config/get` | POST | 获取配置 |
-| `/api/config/set` | POST | 设置配置 |
-| `/api/config/validate` | POST | 验证配置 |
-| `/api/deploy` | POST | 一键部署 |
-| `/api/template/export` | POST | 导出模板 |
-| `/api/template/import` | POST | 导入模板 |
+1. **模型切换** — 进入"模型管理"标签页，选择想要使用的 AI 模型
+2. **网关控制** — 进入"网关控制"，查看状态或重启
+3. **社交接入** — 进入"社交接入"，点击对应平台的按钮添加
+4. **一键部署** — 进入"一键部署"，填写 API Key 自动配置
 
-## 配置
+---
 
-- 端口: `99`（可通过 `CLAWDASH_PORT` 环境变量修改）
-- 配置目录: `~/.openclaw`（可通过 `OPENCLAW_DIR` 环境变量修改）
+## 命令
 
-## 技术栈
+```bash
+# 安装
+curl -s https://raw.githubusercontent.com/Lifeyumo/ClawDash/main/install.sh | bash
 
-- Node.js
-- Express.js
-- 原生 HTML/CSS/JS
+# 卸载
+curl -s https://raw.githubusercontent.com/Lifeyumo/ClawDash/main/uninstall.sh | bash
 
-## 开源协议
+# 查看状态
+curl -X POST http://localhost:99/api/status
+```
 
-MIT License
+---
 
-## 贡献
+## 开源
 
-欢迎提交 Issue 和 PR！
+MIT License — [GitHub](https://github.com/Lifeyumo/ClawDash)
+
+---
+
+*让 AI 管理变得像呼吸一样简单* ✨
