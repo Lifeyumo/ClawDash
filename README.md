@@ -1,6 +1,10 @@
-# ClawDash 🦞
+# 小砚云控 (ClawDash) 🦞
 
-OpenClaw 云端控制面板 - 通过 Web 界面管理你的 OpenClaw 部署。
+> OpenClaw 云端控制面板 - 通过 Web 界面管理你的 OpenClaw 部署
+
+## 简介
+
+小砚云控（ClawDash）是一个轻量级的 Web 管理面板，让你可以通过浏览器远程管理 OpenClaw 部署，无需 SSH 进入服务器也能切换模型、重启网关、查看配置等。
 
 ## 功能
 
@@ -12,18 +16,18 @@ OpenClaw 云端控制面板 - 通过 Web 界面管理你的 OpenClaw 部署。
 
 ## 快速开始
 
-### 安装
+### 一键部署
 
 ```bash
-curl -s https://raw.githubusercontent.com/[你的用户名]/clawdash/main/install.sh | bash
+curl -s https://raw.githubusercontent.com/Lifeyumo/ClawDash/main/install.sh | bash
 ```
 
 ### 手动安装
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/[你的用户名]/clawdash.git
-cd clawdash
+git clone https://github.com/Lifeyumo/ClawDash.git
+cd ClawDash
 
 # 2. 安装依赖
 npm install
@@ -54,8 +58,8 @@ node src/index.js
 
 ## 配置
 
-端口: `99`（可通过 `CLAWDASH_PORT` 环境变量修改）
-配置目录: `~/.openclaw`（可通过 `OPENCLAW_DIR` 环境变量修改）
+- 端口: `99`（可通过 `CLAWDASH_PORT` 环境变量修改）
+- 配置目录: `~/.openclaw`（可通过 `OPENCLAW_DIR` 环境变量修改）
 
 ## 技术栈
 
