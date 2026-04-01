@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ClawDash - OpenClaw 控制面板</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      min-height: 100vh;
+    }
+    .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    
+    /* 顶部 */
+    header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 30px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
+    header h1 { font-size: 2rem; }
+    header .status { opacity: 0.8; margin-top: 5px; }
+    
+    /* 标签页 */
+    .tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+    .tab {
+      padding: 12px 24px;
+      background: #2d2d44;
+      border: none;
+      border-radius: 8px;
+      color: #aaa;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .tab:hover { background: #3d3d5c; }
+    .tab.active { background: #667eea; color: #fff; }
+    
+    /* 面板 */
+    .panel { display: none; }
+    .panel.active { display: block; }
+    
+    /* 卡片 */
+    .card {
+      background: #2d2d44;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .card h2 { 
+      font-size: 1.2rem; 
+      margin-bottom: 15px; 
+      padding-bottom: 10px;
+      border-bottom: 1px solid #3d3d5c;
+    }
+    
+    /* 按钮 */
+    .btn {
+      padding: 10px 20px;
+      background: #667eea;
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.3s;
+    }
+    .btn:hover { background: #764ba2; transform: translateY(-2px); }
+    .btn.danger { background: #e74c3c; }
+    .btn.success { background: #27ae60; }
+    .btn.warning { background: #f39c12; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    
+    /* 输入 */
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; margin-bottom: 5px; color: #aaa; }
+    input, select {
+      width: 100%;
+      padding: 12px;
+      background: #1a1a2e;
+      border: 1px solid #3d3d5c;
+      border-radius: 8px;
+      color: #eee;
+      font-size: 14px;
+    }
+    input:focus, select:focus { outline: none; border-color: #667eea; }
+    
+    /* 模型列表 */
+    .model-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; }
+    .model-item {
+      background: #1a1a2e;
+      padding: 15px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+      border: 2px solid transparent;
+    }
+    .model-item:hover { border-color: #667eea; }
+    .model-item.active { border-color: #27ae60; background: #1a2e2a; }
+    .model-item .name { font-weight: bold; margin-bottom: 5px; }
+    .model-item .provider { color: #aaa; font-size: 12px; }
+    
+    /* 配置 */
+    .config-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      background: #1a1a2e;
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+    .config-item .key { color: #667eea; }
+    .config-item .value { color: #aaa; max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
+    
+    /* 日志 */
+    .log {
+      background: #1a1a2e;
+      padding: 15px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 12px;
+      max-height: 300px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+    
+    /* 加载 */
+    .loading { text-align: center; padding: 40px; color: #aaa; }
+    
+    /* 提示 */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      padding: 15px 25px;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 14px;
+      z-index: 1000;
+      animation: slideIn 0.3s;
+    }
+    .toast.success { background: #27ae60; }
+    .toast.error { background: #e74c3c; }
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    
+    /* 响应式 */
+    @media (max-width: 768px) {
+      .container { padding: 10px; }
+      header { padding: 20px; }
+      header h1 { font-size: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🦞 ClawDash</h1>
+      <div class="status">OpenClaw 云端控制面板</div>
+    </header>
+    
+    <div class="tabs">
+      <button class="tab active" data-tab="models">模型管理</button>
+      <button class="tab" data-tab="gateway">网关控制</button>
+      <button class="tab" data-tab="config">配置管理</button>
+      <button class="tab" data-tab="deploy">一键部署</button>
+      <button class="tab" data-tab="template">训练模板</button>
+    </div>
+    
+    <!-- 模型管理 -->
+    <div class="panel active" id="models">
+      <div class="card">
+        <h2>当前模型</h2>
+        <div id="currentModel">
+          <div class="loading">加载中...</div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>可用模型</h2>
+        <div class="model-list" id="modelList">
+          <div class="loading">加载中...</div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>添加模型</h2>
+        <div class="form-group">
+          <label>提供商</label>
+          <input type="text" id="modelProvider" placeholder="例如: minimax">
+        </div>
+        <div class="form-group">
+          <label>API 地址</label>
+          <input type="text" id="modelBaseUrl" placeholder="例如: https://api.minimaxi.com/anthropic">
+        </div>
+        <div class="form-group">
+          <label>API Key</label>
+          <input type="password" id="modelApiKey" placeholder="API Key">
+        </div>
+        <div class="form-group">
+          <label>模型 ID</label>
+          <input type="text" id="modelId" placeholder="例如: MiniMax-M2.5">
+        </div>
+        <button class="btn" onclick="addModel()">添加模型</button>
+      </div>
+    </div>
+    
+    <!-- 网关控制 -->
+    <div class="panel" id="gateway">
+      <div class="card">
+        <h2>网关状态</h2>
+        <div id="gatewayStatus">
+          <div class="loading">加载中...</div>
+        </div>
+        <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+          <button class="btn success" onclick="gatewayCmd('restart')">重启网关</button>
+          <button class="btn" onclick="gatewayCmd('start')">启动</button>
+          <button class="btn danger" onclick="gatewayCmd('stop')">停止</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>日志</h2>
+        <div class="log" id="gatewayLog">点击按钮查看日志...</div>
+      </div>
+    </div>
+    
+    <!-- 配置管理 -->
+    <div class="panel" id="config">
+      <div class="card">
+        <h2>当前配置</h2>
+        <div id="configList">
+          <div class="loading">加载中...</div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>修改配置</h2>
+        <div class="form-group">
+          <label>配置键（用点分隔）</label>
+          <input type="text" id="configKey" placeholder="例如: agents.defaults.model.primary">
+        </div>
+        <div class="form-group">
+          <label>值</label>
+          <input type="text" id="configValue" placeholder="例如: minimax/MiniMax-M2.1">
+        </div>
+        <button class="btn" onclick="setConfig()">保存配置</button>
+        <button class="btn warning" onclick="validateConfig()">验证配置</button>
+      </div>
+    </div>
+    
+    <!-- 一键部署 -->
+    <div class="panel" id="deploy">
+      <div class="card">
+        <h2>一键部署 OpenClaw</h2>
+        <div class="form-group">
+          <label>API Key *</label>
+          <input type="password" id="deployApiKey" placeholder="你的 API Key">
+        </div>
+        <div class="form-group">
+          <label>提供商</label>
+          <select id="deployProvider">
+            <option value="minimax-api-key">MiniMax</option>
+            <option value="openai-api-key">OpenAI</option>
+            <option value="anthropic-api-key">Anthropic</option>
+            <option value="custom-api-key">自定义</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>网关端口</label>
+          <input type="number" id="deployPort" value="18789">
+        </div>
+        <div class="form-group">
+          <label>绑定方式</label>
+          <select id="deployBind">
+            <option value="lan">局域网 (lan)</option>
+            <option value="loopback">本地 (loopback)</option>
+          </select>
+        </div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <button class="btn success" onclick="doDeploy()">开始部署</button>
+          <button class="btn" onclick="installService()">安装服务</button>
+        </div>
+        <div class="log" id="deployLog" style="margin-top: 15px;">部署结果...</div>
+      </div>
+    </div>
+    
+    <!-- 训练模板 -->
+    <div class="panel" id="template">
+      <div class="card">
+        <h2>导出训练模板</h2>
+        <p style="color: #aaa; margin-bottom: 15px;">导出配置和训练记忆，方便下次一键恢复</p>
+        <button class="btn" onclick="exportTemplate()">导出模板</button>
+        <div class="log" id="exportLog" style="margin-top: 15px; display: none;">导出的模板...</div>
+      </div>
+      <div class="card">
+        <h2>导入训练模板</h2>
+        <div class="form-group">
+          <label>粘贴模板 JSON</label>
+          <textarea id="importTemplate" style="width: 100%; height: 150px; padding: 12px; background: #1a1a2e; border: 1px solid #3d3d5c; border-radius: 8px; color: #eee; font-family: monospace; font-size: 12px;"></textarea>
+        </div>
+        <button class="btn success" onclick="importTemplate()">导入模板</button>
+      </div>
+    </div>
+  </div>
+  
+  <div id="toast" class="toast" style="display: none;"></div>
+  
+  <script>
+    const API = '';
+    
+    // 标签切换
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.tab).classList.add('active');
+      });
+    });
+    
+    // 提示
+    function showToast(msg, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.className = 'toast ' + type;
+      toast.style.display = 'block';
+      setTimeout(() => toast.style.display = 'none', 3000);
+    }
+    
+    // API 请求
+    async function request(endpoint, data = {}) {
+      try {
+        const res = await fetch(API + endpoint, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(data)
+        });
+        return await res.json();
+      } catch (e) {
+        return {success: false, error: e.message};
+      }
+    }
+    
+    // 加载当前模型
+    async function loadCurrentModel() {
+      const r = await request('/api/models/current');
+      const div = document.getElementById('currentModel');
+      if (r.success) {
+        div.innerHTML = `<div class="model-item active">
+          <div class="name">${r.model}</div>
+          <div class="provider">当前使用中</div>
+        </div>`;
+      } else {
+        div.innerHTML = '<div style="color: #e74c3c;">加载失败: ' + r.error + '</div>';
+      }
+    }
+    
+    // 加载模型列表
+    async function loadModelList() {
+      const r = await request('/api/models');
+      const div = document.getElementById('modelList');
+      if (r.success && r.models.length) {
+        const current = await request('/api/models/current');
+        const currentModel = current.model;
+        div.innerHTML = r.models.map(m => `
+          <div class="model-item ${m.id === currentModel ? 'active' : ''}" onclick="switchModel('${m.provider}/${m.id}')">
+            <div class="name">${m.name}</div>
+            <div class="provider">${m.provider}</div>
+          </div>
+        `).join('');
+      } else {
+        div.innerHTML = '<div style="color: #aaa;">暂无模型，请添加</div>';
+      }
+    }
+    
+    // 切换模型
+    async function switchModel(model) {
+      if (!confirm('确定切换到 ' + model + ' ?')) return;
+      const btn = event.target.closest('.btn');
+      if (btn) btn.disabled = true;
+      const r = await request('/api/models/set', {model});
+      showToast(r.success ? '已切换到 ' + model : r.error, r.success ? 'success' : 'error');
+      if (r.success) {
+        await request('/api/gateway/restart');
+        loadCurrentModel();
+        loadModelList();
+      }
+      if (btn) btn.disabled = false;
+    }
+    
+    // 添加模型
+    async function addModel() {
+      const data = {
+        provider: document.getElementById('modelProvider').value,
+        baseUrl: document.getElementById('modelBaseUrl').value,
+        apiKey: document.getElementById('modelApiKey').value,
+        modelId: document.getElementById('modelId').value
+      };
+      if (!data.provider || !data.baseUrl || !data.apiKey || !data.modelId) {
+        return showToast('请填写完整', 'error');
+      }
+      const r = await request('/api/models/add', data);
+      showToast(r.success ? '添加成功' : r.error, r.success ? 'success' : 'error');
+      if (r.success) loadModelList();
+    }
+    
+    // 网关操作
+    async function gatewayCmd(cmd) {
+      const btn = event.target.closest('.btn');
+      if (btn) btn.disabled = true;
+      const r = await request('/api/gateway/' + cmd);
+      document.getElementById('gatewayLog').textContent = JSON.stringify(r, null, 2);
+      showToast(r.success ? cmd + ' 成功' : r.error, r.success ? 'success' : 'error');
+      if (btn) btn.disabled = false;
+      loadGatewayStatus();
+    }
+    
+    // 加载网关状态
+    async function loadGatewayStatus() {
+      const r = await request('/api/gateway/status');
+      const div = document.getElementById('gatewayStatus');
+      if (r.success) {
+        div.innerHTML = '<pre style="white-space: pre-wrap;">' + r.output + '</pre>';
+      } else {
+        div.textContent = r.error || '未知';
+      }
+    }
+    
+    // 加载配置
+    async function loadConfig() {
+      const r = await request('/api/config/get');
+      const div = document.getElementById('configList');
+      if (r.success && r.config) {
+        const flatten = (obj, prefix = '') => {
+          const result = [];
+          for (const [k, v] of Object.entries(obj)) {
+            const key = prefix ? prefix + '.' + k : k;
+            if (typeof v === 'object' && v !== null) {
+              result.push(...flatten(v, key));
+            } else {
+              result.push({key, value: v});
+            }
+          }
+          return result;
+        };
+        const items = flatten(r.config).slice(0, 20);
+        div.innerHTML = items.map(i => `
+          <div class="config-item">
+            <span class="key">${i.key}</span>
+            <span class="value">${JSON.stringify(i.value)}</span>
+          </div>
+        `).join('');
+      } else {
+        div.innerHTML = '<div style="color: #aaa;">暂无配置</div>';
+      }
+    }
+    
+    // 设置配置
+    async function setConfig() {
+      const key = document.getElementById('configKey').value;
+      const value = document.getElementById('configValue').value;
+      if (!key) return showToast('请输入配置键', 'error');
+      const r = await request('/api/config/set', {key, value});
+      showToast(r.success ? '保存成功' : r.error, r.success ? 'success' : 'error');
+      if (r.success) loadConfig();
+    }
+    
+    // 验证配置
+    async function validateConfig() {
+      const r = await request('/api/config/validate');
+      showToast(r.success ? '配置有效' : r.error, r.success ? 'success' : 'error');
+    }
+    
+    // 一键部署
+    async function doDeploy() {
+      const data = {
+        apiKey: document.getElementById('deployApiKey').value,
+        authChoice: document.getElementById('deployProvider').value,
+        gatewayPort: parseInt(document.getElementById('deployPort').value),
+        gatewayBind: document.getElementById('deployBind').value
+      };
+      if (!data.apiKey) return showToast('请填写 API Key', 'error');
+      const log = document.getElementById('deployLog');
+      log.textContent = '部署中...';
+      const r = await request('/api/deploy', data);
+      log.textContent = JSON.stringify(r, null, 2);
+      showToast(r.success ? '部署成功' : '部署完成', r.success ? 'success' : 'error');
+    }
+    
+    // 安装服务
+    async function installService() {
+      const r = await request('/api/service/install');
+      showToast(r.success ? '服务已安装' : r.error, r.success ? 'success' : 'error');
+    }
+    
+    // 导出模板
+    async function exportTemplate() {
+      const r = await request('/api/template/export');
+      const div = document.getElementById('exportLog');
+      if (r.success) {
+        div.style.display = 'block';
+        div.textContent = JSON.stringify(r.template, null, 2);
+        showToast('导出成功');
+      } else {
+        showToast(r.error, 'error');
+      }
+    }
+    
+    // 导入模板
+    async function importTemplate() {
+      try {
+        const template = JSON.parse(document.getElementById('importTemplate').value);
+        const r = await request('/api/template/import', {template});
+        showToast(r.success ? '导入成功' : r.error, r.success ? 'success' : 'error');
+      } catch (e) {
+        showToast('JSON 格式错误', 'error');
+      }
+    }
+    
+    // 初始化
+    loadCurrentModel();
+    loadModelList();
+    loadGatewayStatus();
+    loadConfig();
+  </script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "name": "clawdash",
+  "version": "1.0.0",
+  "description": "OpenClaw 云端控制面板",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node src/index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5"
+  }
+}
