@@ -214,18 +214,15 @@
     <div class="panel" id="gateway">
       <div class="card">
         <h2>网关状态</h2>
-        <div id="gatewayStatus">
-          <div class="loading">加载中...</div>
-        </div>
-        <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
-          <button class="btn success" onclick="gatewayCmd('restart')">重启网关</button>
+        <div style="margin-bottom: 15px; display: flex; gap: 10px;">
+          <button class="btn" onclick="checkGatewayStatus()">检查状态</button>
+          <button class="btn success" onclick="gatewayCmd('restart')">重启</button>
           <button class="btn" onclick="gatewayCmd('start')">启动</button>
           <button class="btn danger" onclick="gatewayCmd('stop')">停止</button>
         </div>
-      </div>
-      <div class="card">
-        <h2>日志</h2>
-        <div class="log" id="gatewayLog">点击按钮查看日志...</div>
+        <div id="gatewayStatus" style="background: #1a1a2e; padding: 15px; border-radius: 8px;">
+          <div class="loading">点击"检查状态"查看...</div>
+        </div>
       </div>
     </div>
     
@@ -468,20 +465,22 @@
       const btn = event.target.closest('.btn');
       if (btn) btn.disabled = true;
       const r = await request('/api/gateway/' + cmd);
-      document.getElementById('gatewayLog').textContent = JSON.stringify(r, null, 2);
       showToast(r.success ? cmd + ' 成功' : r.error, r.success ? 'success' : 'error');
       if (btn) btn.disabled = false;
-      loadGatewayStatus();
+      checkGatewayStatus();
     }
     
-    // 加载网关状态
-    async function loadGatewayStatus() {
+    // 检查网关状态
+    async function checkGatewayStatus() {
       const r = await request('/api/gateway/status');
       const div = document.getElementById('gatewayStatus');
       if (r.success) {
-        div.innerHTML = '<pre style="white-space: pre-wrap;">' + r.output + '</pre>';
+        const isRunning = r.output && !r.output.includes('not running') && !r.output.includes('未运行');
+        div.innerHTML = isRunning 
+          ? '<div style="color: #27ae60;">🟢 网关正在运行</div><pre style="white-space: pre-wrap; margin-top: 10px; color: #aaa; font-size: 12px;">' + r.output + '</pre>'
+          : '<div style="color: #e74c3c;">🔴 网关未运行</div><pre style="white-space: pre-wrap; margin-top: 10px; color: #aaa; font-size: 12px;">' + (r.output || '网关已停止') + '</pre>';
       } else {
-        div.textContent = r.error || '未知';
+        div.innerHTML = '<div style="color: #e74c3c;">🔴 网关未运行</div><div style="color: #aaa; margin-top: 5px;">' + (r.error || '请检查 OpenClaw 是否已安装') + '</div>';
       }
     }
     
@@ -659,10 +658,10 @@
     // 初始化
     loadCurrentModel();
     loadModelList();
-    loadGatewayStatus();
     loadConfig();
     loadWebStatus();
     loadChannelList();
+    checkGatewayStatus();
   </script>
 </body>
 </html>
