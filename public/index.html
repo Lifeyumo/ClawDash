@@ -168,8 +168,10 @@
       <button class="tab active" data-tab="models">模型管理</button>
       <button class="tab" data-tab="gateway">网关控制</button>
       <button class="tab" data-tab="config">配置管理</button>
+      <button class="tab" data-tab="channels">社交接入</button>
       <button class="tab" data-tab="deploy">一键部署</button>
       <button class="tab" data-tab="template">训练模板</button>
+      <button class="tab" data-tab="reset">运维重置</button>
     </div>
     
     <!-- 模型管理 -->
@@ -250,6 +252,49 @@
       </div>
     </div>
     
+    <!-- 社交接入 -->
+    <div class="panel" id="channels">
+      <div class="card">
+        <h2>网页交互</h2>
+        <div id="webStatus" class="loading">加载中...</div>
+        <div style="margin-top: 15px; display: flex; gap: 10px;">
+          <button class="btn success" onclick="enableWeb()">开启网页交互</button>
+          <button class="btn danger" onclick="disableWeb()">关闭网页交互</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>已接入的社交软件</h2>
+        <div id="channelList">
+          <div class="loading">加载中...</div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>添加社交软件</h2>
+        <p style="color: #aaa; margin-bottom: 15px;">选择要接入的社交平台，点击后会显示对应的配置选项</p>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;">
+          <button class="btn" onclick="showChannelForm('telegram')">Telegram</button>
+          <button class="btn" onclick="showChannelForm('discord')">Discord</button>
+          <button class="btn" onclick="showChannelForm('feishu')">飞书</button>
+          <button class="btn" onclick="showChannelForm('whatsapp')">WhatsApp</button>
+          <button class="btn" onclick="showChannelForm('slack')">Slack</button>
+          <button class="btn" onclick="showChannelForm('matrix')">Matrix</button>
+          <button class="btn" onclick="showChannelForm('signal')">Signal</button>
+          <button class="btn" onclick="showChannelForm('line')">LINE</button>
+        </div>
+        <div id="channelForm" style="display: none;">
+          <div class="form-group">
+            <label>Bot Token</label>
+            <input type="password" id="channelToken" placeholder="请输入 Token">
+          </div>
+          <div class="form-group">
+            <label>显示名称（可选）</label>
+            <input type="text" id="channelName" placeholder="例如: ClawBot">
+          </div>
+          <button class="btn success" onclick="addChannel()">添加</button>
+        </div>
+      </div>
+    </div>
+    
     <!-- 一键部署 -->
     <div class="panel" id="deploy">
       <div class="card">
@@ -301,6 +346,18 @@
           <textarea id="importTemplate" style="width: 100%; height: 150px; padding: 12px; background: #1a1a2e; border: 1px solid #3d3d5c; border-radius: 8px; color: #eee; font-family: monospace; font-size: 12px;"></textarea>
         </div>
         <button class="btn success" onclick="importTemplate()">导入模板</button>
+      </div>
+    </div>
+    
+    <!-- 运维重置 -->
+    <div class="panel" id="reset">
+      <div class="card">
+        <h2>抹掉配置重置</h2>
+        <p style="color: #e74c3c; margin-bottom: 15px;">⚠️ 危险操作：会删除所有 OpenClaw 配置，包括模型、社交软件接入等。请谨慎操作！</p>
+        <div style="display: flex; gap: 10px;">
+          <button class="btn danger" onclick="doReset()">确认重置</button>
+        </div>
+        <div class="log" id="resetLog" style="margin-top: 15px;">重置结果...</div>
       </div>
     </div>
   </div>
@@ -519,11 +576,93 @@
       }
     }
     
+    // 社交软件相关
+    let currentChannel = '';
+    
+    async function loadWebStatus() {
+      const r = await request('/api/channels/web/status');
+      const div = document.getElementById('webStatus');
+      if (r.success) {
+        div.innerHTML = r.enabled 
+          ? '<span style="color: #27ae60;">● 网页交互已开启</span>'
+          : '<span style="color: #aaa;">● 网页交互已关闭</span>';
+      }
+    }
+    
+    async function loadChannelList() {
+      const r = await request('/api/channels/list');
+      const div = document.getElementById('channelList');
+      if (r.success && r.channels && r.channels.length) {
+        div.innerHTML = r.channels.map(c => `
+          <div class="model-item">
+            <div class="name">${c.channel || c.accountId || '未知'}</div>
+            <div class="provider">${c.provider || c.status || '已接入'}</div>
+          </div>
+        `).join('');
+      } else {
+        div.innerHTML = '<div style="color: #aaa;">暂无已接入的社交软件</div>';
+      }
+    }
+    
+    function showChannelForm(channel) {
+      currentChannel = channel;
+      document.getElementById('channelForm').style.display = 'block';
+      showToast('请填写 ' + channel + ' 的配置信息', 'success');
+    }
+    
+    async function addChannel() {
+      const token = document.getElementById('channelToken').value;
+      const name = document.getElementById('channelName').value;
+      if (!token) return showToast('请填写 Token', 'error');
+      
+      const r = await request('/api/channels/add', {
+        channel: currentChannel,
+        token: token,
+        name: name
+      });
+      showToast(r.success ? '添加成功' : (r.error || '添加完成'), r.success ? 'success' : 'error');
+      if (r.success) {
+        await request('/api/gateway/restart');
+        loadChannelList();
+      }
+    }
+    
+    async function enableWeb() {
+      const r = await request('/api/channels/web/enable');
+      showToast(r.success ? '网页交互已开启' : r.error, r.success ? 'success' : 'error');
+      if (r.success) {
+        await request('/api/gateway/restart');
+        loadWebStatus();
+      }
+    }
+    
+    async function disableWeb() {
+      const r = await request('/api/channels/web/disable');
+      showToast(r.success ? '网页交互已关闭' : r.error, r.success ? 'success' : 'error');
+      if (r.success) {
+        await request('/api/gateway/restart');
+        loadWebStatus();
+      }
+    }
+    
+    // 重置
+    async function doReset() {
+      if (!confirm('确定要重置所有配置吗？此操作不可恢复！')) return;
+      if (!confirm('再次确认：真的会删除所有配置！')) return;
+      
+      const r = await request('/api/reset', {confirm: true});
+      const div = document.getElementById('resetLog');
+      div.textContent = JSON.stringify(r, null, 2);
+      showToast(r.success ? '重置成功' : r.error, r.success ? 'success' : 'error');
+    }
+    
     // 初始化
     loadCurrentModel();
     loadModelList();
     loadGatewayStatus();
     loadConfig();
+    loadWebStatus();
+    loadChannelList();
   </script>
 </body>
 </html>

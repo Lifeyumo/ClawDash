@@ -317,6 +317,126 @@ const apiRoutes = {
     res.json({ success: true, message: '模板导入成功' });
   },
 
+  // 社交软件频道管理
+  '/api/channels/list': (req, res) => {
+    const result = runCommand('openclaw channels list --json');
+    let channels = [];
+    if (result.success) {
+      try {
+        channels = JSON.parse(result.output);
+      } catch (e) {
+        channels = result.output.split('\n').filter(l => l.trim());
+      }
+    }
+    res.json({ success: true, channels });
+  },
+
+  '/api/channels/add': (req, res) => {
+    const { channel, token, name, botToken, appToken, webhookUrl, webhookPath, baseUrl, appId, appSecret } = req.body;
+    if (!channel) {
+      return res.json({ success: false, error: '缺少 channel 参数' });
+    }
+    
+    let cmd = `openclaw channels add --channel ${channel}`;
+    if (token) cmd += ` --token "${token}"`;
+    if (name) cmd += ` --name "${name}"`;
+    if (botToken) cmd += ` --bot-token "${botToken}"`;
+    if (appToken) cmd += ` --app-token "${appToken}"`;
+    if (webhookUrl) cmd += ` --webhook-url "${webhookUrl}"`;
+    if (webhookPath) cmd += ` --webhook-path "${webhookPath}"`;
+    if (baseUrl) cmd += ` --url "${baseUrl}"`;
+    
+    const result = runCommand(cmd);
+    res.json(result);
+  },
+
+  '/api/channels/remove': (req, res) => {
+    const { channel, account } = req.body;
+    if (!channel) {
+      return res.json({ success: false, error: '缺少 channel 参数' });
+    }
+    
+    let cmd = `openclaw channels remove --channel ${channel}`;
+    if (account) cmd += ` --account ${account}`;
+    
+    const result = runCommand(cmd);
+    res.json(result);
+  },
+
+  '/api/channels/login': (req, res) => {
+    const { channel } = req.body;
+    if (!channel) {
+      return res.json({ success: false, error: '缺少 channel 参数' });
+    }
+    
+    const result = runCommand(`openclaw channels login --channel ${channel}`);
+    res.json(result);
+  },
+
+  // 获取 channels 配置（用于网页交互）
+  '/api/channels/web/enable': (req, res) => {
+    const config = readConfig();
+    if (!config.channels) config.channels = {};
+    if (!config.channels.web) {
+      config.channels.web = {
+        enabled: true
+      };
+    } else {
+      config.channels.web.enabled = true;
+    }
+    writeConfig(config);
+    res.json({ success: true, message: '网页交互已开启' });
+  },
+
+  '/api/channels/web/disable': (req, res) => {
+    const config = readConfig();
+    if (config.channels && config.channels.web) {
+      config.channels.web.enabled = false;
+      writeConfig(config);
+    }
+    res.json({ success: true, message: '网页交互已关闭' });
+  },
+
+  '/api/channels/web/status': (req, res) => {
+    const config = readConfig();
+    const webEnabled = config.channels?.web?.enabled || false;
+    res.json({ success: true, enabled: webEnabled });
+  },
+
+  // 获取可用通道类型
+  '/api/channels/capabilities': (req, res) => {
+    const result = runCommand('openclaw channels capabilities --all --json');
+    try {
+      const caps = result.success ? JSON.parse(result.output) : {};
+      res.json({ success: true, capabilities: caps });
+    } catch (e) {
+      res.json({ success: true, capabilities: {} });
+    }
+  },
+
+  // 重置 OpenClaw（抹掉所有配置）
+  '/api/reset': (req, res) => {
+    const { confirm } = req.body;
+    if (!confirm) {
+      return res.json({ success: false, error: '需要确认，请传 confirm: true' });
+    }
+    
+    // 停止网关
+    runCommand('openclaw gateway stop');
+    
+    // 删除配置
+    const configPath = path.join(CONFIG.openclawDir, CONFIG.openclawJson);
+    const backupPath = configPath + '.reset.' + Date.now();
+    if (fs.existsSync(configPath)) {
+      fs.copyFileSync(configPath, backupPath);
+    }
+    
+    // 重置配置
+    fs.writeFileSync(configPath, JSON.stringify({}, null, 2));
+    
+    res.json({ success: true, message: '配置已重置，原配置备份在: ' + backupPath });
+  },
+
   // 获取可用命令列表
   '/api/commands': (req, res) => {
     const result = runCommand('openclaw --help');
